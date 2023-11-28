@@ -5,7 +5,31 @@
 /* 10 Points */
 void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
 {
-
+      switch (ALUControl){
+            case '000':
+                *ALUresult = A + B;
+            case '001':
+                *ALUresult = A - B;
+            //010 and 011 might be wrong
+            case '010':
+                if(A < B)
+                    strcpy(Zero, "1");
+                else
+                    strcpy(Zero, "0");
+            case '011':
+                if((unsigned int)A < (unsigned int)B)
+                    strcpy(Zero, "1");
+                else
+                    strcpy(Zero, "0");
+            case '100':
+                *ALUresult = A & B;
+            case '101':
+                *ALUresult = A | B;
+            case '110':
+                *ALUresult = *ALUresult << 16;
+            case '111':
+                *ALUresult = ~A;
+    }
 }
 
 /* instruction fetch */

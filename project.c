@@ -6,62 +6,59 @@
 /* 10 Points */
 void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
 {
-    printf("%c \n", ALUControl);
     
     switch (ALUControl) {
-        case 0:
+        case 0x0:
             *ALUresult = A + B;
-            *Zero = (*ALUresult == 0) ? 1 : 0;
             break;
-        case 1:
+
+        case 0x1:
             *ALUresult = A - B;
-            *Zero = (*ALUresult == 0) ? 1 : 0;
             break;
-        case 2:
+
+        case 0x2:
             *ALUresult = (A < B) ? 1 : 0;
-            *Zero = (*ALUresult == 0) ? 1 : 0;
             break;
-        case 3:
+
+        case 0x3:
             *ALUresult = ((unsigned)A < (unsigned)B) ? 1 : 0;
-            *Zero = (*ALUresult == 0) ? 1 : 0;
             break;
-        case 4:
+
+        case 0x4:
             *ALUresult = A & B;
-            *Zero = (*ALUresult == 0) ? 1 : 0;
             break;
-        case 5:
+
+        case 0x5:
             *ALUresult = A | B;
-            *Zero = (*ALUresult == 0) ? 1 : 0;
             break;
-        case 6:
+
+        case 0x6:
             *ALUresult = B << 16;
-            *Zero = (*ALUresult == 0) ? 1 : 0;
             break;
-        case 7:
+
+        case 0x7:
             *ALUresult = ~A;
-            *Zero = (*ALUresult == 0) ? 1 : 0;
             break;
     }
 
+    if(*ALUresult == 0)
+        *Zero == 1;
+    else
+        *Zero == 0;
 }
 
 /* instruction fetch */
 /* 10 Points */
 int instruction_fetch(unsigned PC,unsigned *Mem,unsigned *instruction)
 {
-    if (PC % 4 != 0) {
-        return 1;
-    }
-
     *instruction = Mem[PC >> 2];
 
-    if (*instruction == 0 || (PC / 4) >= MEMSIZE) {
+    if (PC % 4 != 0 || (PC / 4) >= MEMSIZE || *instruction == 0) {
         return 1;
     }
 
     return 0;
 }
-
 
 /* instruction partition */
 /* 10 Points */
@@ -76,8 +73,6 @@ void instruction_partition(unsigned instruction, unsigned *op, unsigned *r1,unsi
     *jsec = instruction & 0x3FFFFFF;
 }
 
-
-
 /* instruction decode */
 /* 15 Points */
 int instruction_decode(unsigned op,struct_controls *controls)
@@ -91,7 +86,7 @@ int instruction_decode(unsigned op,struct_controls *controls)
             controls->MemWrite = 0;
             controls->Branch = 0;
             controls->Jump = 0;
-            controls->ALUOp = 0b111;
+            controls->ALUOp = 0x7;
             controls->RegDst = 1;
             break;
         case 0x8: // addi
@@ -102,7 +97,7 @@ int instruction_decode(unsigned op,struct_controls *controls)
             controls->MemWrite = 0;
             controls->Branch = 0;
             controls->Jump = 0;
-            controls->ALUOp = 0b000;
+            controls->ALUOp = 0x0;
             controls->RegDst = 0;
             break;
         case 0x23: // lw
@@ -113,7 +108,7 @@ int instruction_decode(unsigned op,struct_controls *controls)
             controls->MemWrite = 0;
             controls->Branch = 0;
             controls->Jump = 0;
-            controls->ALUOp = 0b000;
+            controls->ALUOp = 0x0;
             controls->RegDst = 0;
             break;
         case 0x2B: // sw
@@ -124,7 +119,7 @@ int instruction_decode(unsigned op,struct_controls *controls)
             controls->MemWrite = 1;
             controls->Branch = 0;
             controls->Jump = 0;
-            controls->ALUOp = 0b000;
+            controls->ALUOp = 0x0;
             controls->RegDst = 0;
             break;
         case 0x4: // beq
@@ -135,7 +130,7 @@ int instruction_decode(unsigned op,struct_controls *controls)
             controls->MemWrite = 0;
             controls->Branch = 1;
             controls->Jump = 0;
-            controls->ALUOp = 0b010;
+            controls->ALUOp = 0x2;
             controls->RegDst = 0;
             break;
         case 0x2: // j
@@ -146,14 +141,25 @@ int instruction_decode(unsigned op,struct_controls *controls)
             controls->MemWrite = 0;
             controls->Branch = 0;
             controls->Jump = 1;
-            controls->ALUOp = 0b000;
+            controls->ALUOp = 0x0;
             controls->RegDst = 0;
             break;
-        default: // Halt for illegal instruction
+        case 0x0F: // lui
+            controls->RegWrite = 1;
+            controls->ALUSrc = 1;
+            controls->MemtoReg = 0;
+            controls->MemRead = 0;
+            controls->MemWrite = 0;
+            controls->Branch = 0;
+            controls->Jump = 0;
+            controls->ALUOp = 0x6;
+            controls->RegDst = 0;
+            break;
+        default:
             return 1;
     }
-    return 0;
 
+    return 0;
 }
 
 /* Read Register */
@@ -181,45 +187,59 @@ int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigne
     if (ALUSrc == 0) {
         A = data1;
         B = data2;
-    } else {
+    } 
+    else {
         A = data1;
         B = extended_value;
     }
 
-    if (ALUOp == 0b000) {
-        ALUControl = 0b000;
-    } else if (ALUOp == 0b001) { 
-        ALUControl = 0b001;
-    } else if (ALUOp == 0b010) { 
-        ALUControl = 0b010;
-    } else if (ALUOp == 0b011) {
-        ALUControl = 0b011;
-    } else if (ALUOp == 0b100) {
-        ALUControl = 0b100;
-    } else if (ALUOp == 0b101) {
-        ALUControl = 0b101;
-    } else if (ALUOp == 0b110) {
-        ALUControl = 0b110;
-    } else if (ALUOp == 0b111) {
-        if (funct == 0b000000) {
-            ALUControl = 0b000;
-        } else if (funct == 0b000010) {
-            ALUControl = 0b010;
-        } else {
-            ALUControl = 0b000; 
+    if (ALUOp == 0x0) {
+        ALUControl = 0x0;
+    } 
+    else if (ALUOp == 0x1) { 
+        ALUControl = 0x1;
+    } 
+    else if (ALUOp == 0x2) { 
+        ALUControl = 0x2;
+    } 
+    else if (ALUOp == 0x3) {
+        ALUControl = 0x3;
+    } 
+    else if (ALUOp == 0x4) {
+        ALUControl = 0x4;
+    } 
+    else if (ALUOp == 0x5) {
+        ALUControl = 0x5;
+    } 
+    else if (ALUOp == 0x6) {
+        ALUControl = 0x6;
+    } 
+    else if (ALUOp == 0x7) {
+        //printf("ALUOp is 0b111. funct = %u\n", funct);
+        //printf("ALUOp is 0b111. funct = 0x%x\n", funct);
+        if (funct == 0x20) {
+            ALUControl = 0x0;
+        } 
+        else if (funct == 0x2a) {
+            ALUControl = 0x2;
         }
-    } else {
-        ALUControl = 0b000; 
+        else if(funct == 0x2b){
+            ALUControl = 0x3;
+        } 
+        else {
+            ALUControl = 0x0; 
+        }
+    } 
+    else {
+        ALUControl = 0x0; 
     }
 
     ALU(A, B, ALUControl, ALUresult, Zero);
 
-    printf("ALU Operation: A=%u, B=%u, ALUControl=%u, ALUResult=%u, Zero=%d\n", A, B, ALUControl, *ALUresult, *Zero);
-
-    if(*ALUresult >> 2 >= MEMSIZE){
-        printf("triggered \n");
+    //printf("ALU Operation: A=%u, B=%u, ALUControl=%u, ALUResult=%u, Zero=%d\n", A, B, ALUControl, *ALUresult, *Zero);
+    /*if ( == 1) {
         return 1;
-    }
+    }*/
 
     return 0;
 }
@@ -228,10 +248,11 @@ int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigne
 /* 10 Points */
 int rw_memory(unsigned ALUresult,unsigned data2,char MemWrite,char MemRead,unsigned *memdata,unsigned *Mem)
 {
-    if(ALUresult / 4 >= MEMSIZE){
+    //halt
+    if (ALUresult / 4 >= MEMSIZE) {
         return 1;
     }
-    
+
     if(MemWrite == 1){
         Mem[ALUresult / 4] = data2;
     }
@@ -242,12 +263,13 @@ int rw_memory(unsigned ALUresult,unsigned data2,char MemWrite,char MemRead,unsig
     return 0;
 }
 
-
 /* Write Register */
 /* 10 Points */
 void write_register(unsigned r2,unsigned r3,unsigned memdata,unsigned ALUresult,char RegWrite,char RegDst,char MemtoReg,unsigned *Reg)
 {
     unsigned write_data;
+
+    //change
 
     if (RegWrite) {
         write_data = (MemtoReg) ? memdata : ALUresult;
@@ -269,5 +291,6 @@ void PC_update(unsigned jsec,unsigned extended_value,char Branch,char Jump,char 
         *PC = (jsec << 2) | (*PC & 0xF0000000);
     }
 }
+
 
 

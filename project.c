@@ -2,7 +2,7 @@
 
 #define MEMSIZE (65536 >> 2)
 static unsigned savePC;
-static char jumpHappen;
+static int jumpHappen;
 
 /* ALU */
 /* 10 Points */
@@ -284,24 +284,21 @@ void write_register(unsigned r2,unsigned r3,unsigned memdata,unsigned ALUresult,
 /* PC update */
 /* 10 Points */
 void PC_update(unsigned jsec,unsigned extended_value,char Branch,char Jump,char Zero,unsigned *PC)
-{
+{   
     *PC = *PC + 4;
 
     if(jumpHappen == 1){
         *PC = savePC;
-        jumpHappen == 0;
+        jumpHappen = 0;
     }
     else if(Branch && Zero){
         *PC = *PC + extended_value;
     }
     else if(Jump){
         savePC = *PC;
-        jumpHappen == 1;
+        jumpHappen = 1;
+        printf("jumpHappen: %d\n", jumpHappen);
+        printf("savePC: 0x%X\n", savePC);
         *PC = (jsec << 2) | (*PC & 0xF0000000);
     }
 }
-
-
-
-
-

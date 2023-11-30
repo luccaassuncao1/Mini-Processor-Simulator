@@ -8,7 +8,6 @@ static int jumpHappen;
 /* 10 Points */
 void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
 {
-    printf("0x2: 0x%X\n", ALUControl);
     switch (ALUControl) {
         case 0x0:
             *ALUresult = A + B;
@@ -20,12 +19,10 @@ void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
 
         case 0x2:
             *ALUresult = ((int)A < (int)B) ? 1 : 0;
-             printf("0x2: %X\n", *ALUresult);
             break;
 
         case 0x3:
             *ALUresult = ((unsigned)A < (unsigned)B) ? 1 : 0;
-             printf("0x3: %X\n", *ALUresult);
             break;
 
         case 0x4:
@@ -84,9 +81,7 @@ void instruction_partition(unsigned instruction, unsigned *op, unsigned *r1,unsi
 /* instruction decode */
 /* 15 Points */
 int instruction_decode(unsigned op,struct_controls *controls)
-{
-    printf("Decoded op: 0x%x\n", op);
-    
+{    
     switch (op) {
         case 0x0: // R-type
             controls->RegWrite = 1;
@@ -213,7 +208,6 @@ void sign_extend(unsigned offset,unsigned *extended_value)
 /* 10 Points */
 int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigned funct,char ALUOp,char ALUSrc,unsigned *ALUresult,char *Zero)
 {
-    printf("ALUSrc: %d\n", ALUSrc);
     unsigned A, B;
     char ALUControl;
 
@@ -276,8 +270,6 @@ int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigne
 
     ALU(A, B, ALUControl, ALUresult, Zero);
 
-    printf("ALU Operation: A=%u, B=%u, ALUControl=%u, ALUResult=%u, Zero=%d\n", A, B, ALUControl, *ALUresult, *Zero);
-
     return 0;
 }
 
@@ -332,8 +324,6 @@ void PC_update(unsigned jsec,unsigned extended_value,char Branch,char Jump,char 
     else if(Jump){
         savePC = *PC;
         jumpHappen = 1;
-        printf("jumpHappen: %d\n", jumpHappen);
-        printf("savePC: 0x%X\n", savePC);
         *PC = (jsec << 2) | (*PC & 0xF0000000);
     }
 }

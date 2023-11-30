@@ -286,9 +286,15 @@ int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigne
 int rw_memory(unsigned ALUresult,unsigned data2,char MemWrite,char MemRead,unsigned *memdata,unsigned *Mem)
 {
     if(MemWrite == 1){
+        if (ALUresult % 4 != 0) {
+            return 1;
+        }
         Mem[ALUresult / 4] = data2;
     }
     else if(MemRead == 1){
+        if (ALUresult % 4 != 0) {
+            return 1;
+        }
         *memdata = Mem[ALUresult / 4];
     }
 

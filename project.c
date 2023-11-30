@@ -1,6 +1,8 @@
 #include "spimcore.h"
 
 #define MEMSIZE (65536 >> 2)
+static unsigned savePC;
+static char jumpHappen;
 
 /* ALU */
 /* 10 Points */
@@ -34,6 +36,7 @@ void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
 
         case 0x6:
             *ALUresult = B << 16;
+            printf("%X\n", *ALUresult);
             break;
 
         case 0x7:
@@ -51,9 +54,13 @@ void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
 /* 10 Points */
 int instruction_fetch(unsigned PC,unsigned *Mem,unsigned *instruction)
 {
+    if (PC % 4 != 0 ){
+        return 1;
+    }
+    
     *instruction = Mem[PC >> 2];
 
-    if (PC % 4 != 0 || (PC / 4) >= MEMSIZE || *instruction == 0) {
+    if ((PC / 4) >= MEMSIZE || *instruction == 0) {
         return 1;
     }
 
@@ -181,6 +188,7 @@ void sign_extend(unsigned offset,unsigned *extended_value)
 /* 10 Points */
 int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigned funct,char ALUOp,char ALUSrc,unsigned *ALUresult,char *Zero)
 {
+    printf("ALUSrc: %d\n", ALUSrc);
     unsigned A, B;
     char ALUControl;
 
@@ -215,8 +223,6 @@ int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigne
         ALUControl = 0x6;
     } 
     else if (ALUOp == 0x7) {
-        //printf("ALUOp is 0b111. funct = %u\n", funct);
-        //printf("ALUOp is 0b111. funct = 0x%x\n", funct);
         if (funct == 0x20) {
             ALUControl = 0x0;
         } 
@@ -227,19 +233,16 @@ int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigne
             ALUControl = 0x3;
         } 
         else {
-            ALUControl = 0x0; 
+            return 1; 
         }
     } 
     else {
-        ALUControl = 0x0; 
+        return 1; 
     }
 
     ALU(A, B, ALUControl, ALUresult, Zero);
 
-    //printf("ALU Operation: A=%u, B=%u, ALUControl=%u, ALUResult=%u, Zero=%d\n", A, B, ALUControl, *ALUresult, *Zero);
-    /*if ( == 1) {
-        return 1;
-    }*/
+    printf("ALU Operation: A=%u, B=%u, ALUControl=%u, ALUResult=%u, Zero=%d\n", A, B, ALUControl, *ALUresult, *Zero);
 
     return 0;
 }
@@ -248,16 +251,16 @@ int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigne
 /* 10 Points */
 int rw_memory(unsigned ALUresult,unsigned data2,char MemWrite,char MemRead,unsigned *memdata,unsigned *Mem)
 {
-    //halt
-    if (ALUresult / 4 >= MEMSIZE) {
-        return 1;
-    }
 
     if(MemWrite == 1){
         Mem[ALUresult / 4] = data2;
     }
     else if(MemRead == 1){
         *memdata = Mem[ALUresult / 4];
+    }
+
+    if (*memdata % 4 != 0) {
+        return 1;    
     }
 
     return 0;
@@ -284,13 +287,21 @@ void PC_update(unsigned jsec,unsigned extended_value,char Branch,char Jump,char 
 {
     *PC = *PC + 4;
 
-    if(Branch && Zero){
+    if(jumpHappen == 1){
+        *PC = savePC;
+        jumpHappen == 0;
+    }
+    else if(Branch && Zero){
         *PC = *PC + extended_value;
     }
     else if(Jump){
+        savePC = *PC;
+        jumpHappen == 1;
         *PC = (jsec << 2) | (*PC & 0xF0000000);
     }
 }
+
+
 
 
 
